@@ -1,4 +1,3 @@
-Sure! Here's a nicely formatted `README.md` version of the dataset overview:
 
 # 🛒 Retail eCommerce Funnel Analysis Dataset
 
