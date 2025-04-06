@@ -1,15 +1,59 @@
 import streamlit as st
+import pandas as pd
 import datetime
+import plotly.express as px
 
+from components.sidebar_filters import render_sidebar
+
+from components.overview import create_daily_activity_overview,create_conversion_funnel,plot_top_categories,plot_top_products,plot_behavior_distribution,render_overview_tab
+from components.funnel_analysis import render_funnel_tab
+from components.time_trends import render_time_trends_tab
+from components.product_popularity import render_product_popularity_tab
+from components.category_analysis import render_category_analysis_tab
+from components.user_behavior import render_user_behavior_tab
+
+
+
+
+# -----------------------------
+# Caching Function to Load Data
+# -----------------------------
+# This function uses Streamlit's caching to load the data once and reuse it.
+# -----------------------------
 # Set page configuration
+# -----------------------------
 st.set_page_config(
-    page_title="Taobao E-Commerce Analytics",
+    page_title="E-Commerce Data Analytics",
     page_icon="🛒",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
+@st.cache_data(show_spinner=True)
+def load_data(parquet_file_path):
+    df = pd.read_parquet(parquet_file_path)
+
+    # Clean the Timestamp column by removing the ID prefix
+    if pd.api.types.is_object_dtype(df["Timestamp"]):
+        # Extract just the timestamp part (everything after the ID number)
+        df["Timestamp"] = df["Timestamp"].astype(str).str.extract(r'(\d{4}-\d{2}-\d{2}.+)')
+    
+    # Convert Timestamp to datetime if necessary
+    if not pd.api.types.is_datetime64_any_dtype(df["Timestamp"]):
+        df["Timestamp"] = pd.to_datetime(df["Timestamp"], errors='coerce')
+
+    return df
+
+data_path = r"C:\Users\anujp\Desktop\Data-Visualization-Final-Project\data\UserBehavior\user_behavior_sample_1000000.parquet"
+df = load_data(data_path)
+
+
+
+
+
+# -----------------------------
 # Custom CSS for better UI
+# -----------------------------
 st.markdown("""
 <style>
     /* Main styling */
@@ -106,105 +150,88 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Sidebar
-with st.sidebar:
-    st.title("🛒 Taobao Analytics")
-    
-    # Date filters
-    st.markdown("### 📅 Date Range")
-    start_date = st.date_input("Start Date", datetime.date(2017, 11, 25))
-    end_date = st.date_input("End Date", datetime.date(2017, 12, 2))
-    
-    # Quick date selectors
-    cols = st.columns(4)
-    with cols[0]:
-        st.button("Day", use_container_width=True)
-    with cols[1]:
-        st.button("Week", use_container_width=True)
-    with cols[2]:
-        st.button("Month", use_container_width=True)
-    with cols[3]:
-        st.button("All", use_container_width=True)
-    
-    # Behavior filters
-    st.markdown("### 🔄 Behaviors")
-    behavior_types = st.multiselect(
-        "Select behaviors",
-        ["pv (Page View)", "cart (Add to Cart)", "fav (Favorite)", "buy (Purchase)"],
-        default=["pv (Page View)", "cart (Add to Cart)", "buy (Purchase)"]
-    )
-    
-    # Category filters
-    st.markdown("### 🗂️ Categories")
-    categories = st.multiselect(
-        "Select categories",
-        ["Electronics", "Clothing", "Home Goods", "Beauty", "Sports", "Others"],
-        default=["Electronics", "Clothing"]
-    )
-    
-    # Apply/Reset buttons
-    col1, col2 = st.columns(2)
-    with col1:
-        st.button("Apply Filters", use_container_width=True, type="primary")
-    with col2:
-        st.button("Reset", use_container_width=True)
-    
-    st.markdown("---")
-    st.markdown("### 📊 Data Source")
-    st.markdown("Taobao E-Commerce Dataset")
-    st.markdown("• 987,982 unique users")
-    st.markdown("• 3,962,559 unique products")
-    st.markdown("• 9,377 unique categories")
-    st.markdown("• 8 days (Nov 25 - Dec 2, 2017)")
 
-# Main Content Area
-# Main title with date range
-st.markdown('<div class="main-title">Taobao E-Commerce Funnel Analysis Dashboard</div>', unsafe_allow_html=True)
+
+
+
+
+
+
+# -----------------------------
+# Sidebar: Filters and Data Source
+# -----------------------------
+df = render_sidebar(df, data_path, load_data)
+
+
+
+
+# -----------------------------
+# Main Content Area: Header and Key Metrics
+# -----------------------------
+st.markdown('<div class="main-title">E-Commerce Funnel Analysis Dashboard</div>', unsafe_allow_html=True)
 st.markdown(f"""
 <div style="text-align: center; margin-bottom: 2rem;">
     <span style="background-color: #f8f9fa; padding: 0.5rem 1rem; border-radius: 2rem; font-weight: 500;">
-        📅 November 25, 2017 - December 2, 2017
+        📅 {st.session_state.start_date.strftime('%b %d, %Y')} - {st.session_state.end_date.strftime('%b %d, %Y')}
     </span>
 </div>
 """, unsafe_allow_html=True)
 
-# Key metrics
+
+
+# -----------------------------
+# Key Metrics (Consider calculating these from df for dynamic updates)
+# -----------------------------
 st.markdown('<div class="section-header">📈 Key Metrics</div>', unsafe_allow_html=True)
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    st.markdown("""
+    st.markdown(f"""
     <div class="metric-card">
-        <div class="metric-value">987,982</div>
+        <div class="metric-value">{df["UserID"].nunique():,}</div>
         <div class="metric-label">Total Users</div>
     </div>
     """, unsafe_allow_html=True)
 
 with col2:
-    st.markdown("""
+    st.markdown(f"""
     <div class="metric-card">
-        <div class="metric-value">3.96M</div>
+        <div class="metric-value">{df["ItemID"].nunique()/1e6:.2f}M</div>
         <div class="metric-label">Total Products</div>
     </div>
     """, unsafe_allow_html=True)
 
 with col3:
-    st.markdown("""
+    st.markdown(f"""
     <div class="metric-card">
-        <div class="metric-value">86.95M</div>
+        <div class="metric-value">{df.shape[0]/1e6:.2f}M</div>
         <div class="metric-label">Interactions</div>
     </div>
     """, unsafe_allow_html=True)
-
 with col4:
-    st.markdown("""
+    # Count page views and purchases
+    pv_count = df[df['BehaviorType'] == 'pv'].shape[0]
+    buy_count = df[df['BehaviorType'] == 'buy'].shape[0]
+    
+    # Calculate conversion rate (handle division by zero)
+    if pv_count > 0:
+        conversion_rate = (buy_count / pv_count) * 100
+    else:
+        conversion_rate = 0
+    
+    st.markdown(f"""
     <div class="metric-card">
-        <div class="metric-value">3.2%</div>
+        <div class="metric-value">{conversion_rate:.1f}%</div>
         <div class="metric-label">Conversion Rate</div>
     </div>
     """, unsafe_allow_html=True)
 
-# Main dashboard tabs
+
+
+
+# -----------------------------
+# Main Dashboard Tabs
+# -----------------------------
 tabs = st.tabs([
     "📊 Overview", 
     "🔄 Funnel Analysis", 
@@ -214,381 +241,131 @@ tabs = st.tabs([
     "👥 User Behavior"
 ])
 
-# Tab 1: Overview
+
+
+
+# -----------------------------
+# Tab 1: Overview - Dynamic Plotly Charts for Daily Activity Overview
+# -----------------------------
 with tabs[0]:
-    # Highlight metrics
-    st.markdown('<div class="section-header">Highlights</div>', unsafe_allow_html=True)
+    render_overview_tab(df)
     
-    # Chart placeholders with two columns layout
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("""
-        <div class="chart-placeholder">
-            <div style="text-align: center;">
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">📈</div>
-                <div style="font-weight: bold;">Daily Activity Overview</div>
-                <div style="color: #7f8c8d; margin-top: 0.5rem;">Bar chart showing daily interactions</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown("""
-        <div class="chart-placeholder">
-            <div style="text-align: center;">
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔄</div>
-                <div style="font-weight: bold;">Conversion Funnel</div>
-                <div style="color: #7f8c8d; margin-top: 0.5rem;">Funnel showing pv → cart → buy flow</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # Insights box
-    st.markdown("""
-    <div class="insight-box">
-        <div style="font-weight: bold; margin-bottom: 0.5rem;">Key Insights:</div>
-        <ul>
-            <li>View-to-cart conversion is 27.2%, while cart-to-purchase is 11.8%</li>
-            <li>Weekend conversion rates are 23% higher than weekdays</li>
-            <li>Users who favorite items are 3.5x more likely to purchase later</li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # More charts in three columns
-    st.markdown('<div class="section-header">Key Metrics Breakdown</div>', unsafe_allow_html=True)
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.markdown("""
-        <div class="chart-placeholder">
-            <div style="text-align: center;">
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">📊</div>
-                <div style="font-weight: bold;">Top Categories</div>
-                <div style="color: #7f8c8d; margin-top: 0.5rem;">Pie chart of top categories</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown("""
-        <div class="chart-placeholder">
-            <div style="text-align: center;">
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔝</div>
-                <div style="font-weight: bold;">Top Products</div>
-                <div style="color: #7f8c8d; margin-top: 0.5rem;">Bar chart of most popular products</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col3:
-        st.markdown("""
-        <div class="chart-placeholder">
-            <div style="text-align: center;">
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">👥</div>
-                <div style="font-weight: bold;">User Activity</div>
-                <div style="color: #7f8c8d; margin-top: 0.5rem;">Distribution of user behaviors</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-# Tab 2: Funnel Analysis
+# -----------------------------
+# Tab 2: Funnel Analysis - Enhanced with Dynamic Plotly Charts
+# -----------------------------
 with tabs[1]:
-    st.markdown('<div class="section-header">Conversion Funnel</div>', unsafe_allow_html=True)
-    
-    # Funnel metrics
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.markdown("""
-        <div class="metric-card">
-            <div style="font-size: 1rem; color: #7f8c8d; margin-bottom: 0.5rem;">Page Views</div>
-            <div style="font-size: 1.5rem; font-weight: bold; color: #2c3e50;">4.58M</div>
-            <div style="font-size: 0.9rem; color: #7f8c8d;">100%</div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown("""
-        <div class="metric-card">
-            <div style="font-size: 1rem; color: #7f8c8d; margin-bottom: 0.5rem;">Add to Cart</div>
-            <div style="font-size: 1.5rem; font-weight: bold; color: #2c3e50;">1.25M</div>
-            <div style="font-size: 0.9rem; color: #27ae60;">27.2%</div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col3:
-        st.markdown("""
-        <div class="metric-card">
-            <div style="font-size: 1rem; color: #7f8c8d; margin-bottom: 0.5rem;">Favorites</div>
-            <div style="font-size: 1.5rem; font-weight: bold; color: #2c3e50;">785K</div>
-            <div style="font-size: 0.9rem; color: #27ae60;">17.1%</div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col4:
-        st.markdown("""
-        <div class="metric-card">
-            <div style="font-size: 1rem; color: #7f8c8d; margin-bottom: 0.5rem;">Purchases</div>
-            <div style="font-size: 1.5rem; font-weight: bold; color: #2c3e50;">147K</div>
-            <div style="font-size: 0.9rem; color: #27ae60;">3.2%</div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # Funnel visualization placeholder
-    st.markdown("""
-    <div class="chart-placeholder" style="height: 400px;">
-        <div style="text-align: center;">
-            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔄</div>
-            <div style="font-weight: bold;">Full Conversion Funnel</div>
-            <div style="color: #7f8c8d; margin-top: 0.5rem;">Interactive funnel chart showing conversion flow</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Funnel by category
-    st.markdown('<div class="section-header">Funnel by Category</div>', unsafe_allow_html=True)
-    
-    st.markdown("""
-    <div class="chart-placeholder" style="height: 350px;">
-        <div style="text-align: center;">
-            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🗂️</div>
-            <div style="font-weight: bold;">Category Conversion Rates</div>
-            <div style="color: #7f8c8d; margin-top: 0.5rem;">Heatmap of conversion rates by category</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Drop-off insights
-    st.markdown("""
-    <div class="insight-box">
-        <div style="font-weight: bold; margin-bottom: 0.5rem;">Funnel Insights:</div>
-        <p>The biggest drop-off (72.8%) occurs between Page Views and Add to Cart, suggesting that product pages may need optimization. Electronics has the highest view-to-cart conversion at 32.5%, while Clothing has the highest cart-to-purchase rate at 15.2%.</p>
-    </div>
-    """, unsafe_allow_html=True)
+    render_funnel_tab(df)
 
-# Tab 3: Time Trends
+# -----------------------------
+# Tab 3: Time Trends - Dynamic Plotly Charts for Time-Based Analysis
+# -----------------------------
 with tabs[2]:
-    st.markdown('<div class="section-header">Time-Based Analysis</div>', unsafe_allow_html=True)
-    
-    # Daily trends
-    st.markdown("""
-    <div class="chart-placeholder" style="height: 300px;">
-        <div style="text-align: center;">
-            <div style="font-size: 2rem; margin-bottom: 0.5rem;">📈</div>
-            <div style="font-weight: bold;">Daily Activity Trends</div>
-            <div style="color: #7f8c8d; margin-top: 0.5rem;">Line chart showing behavior patterns over 8 days</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Hourly heatmap
-    st.markdown('<div class="section-header">Hourly Activity Patterns</div>', unsafe_allow_html=True)
-    
-    st.markdown("""
-    <div class="chart-placeholder" style="height: 350px;">
-        <div style="text-align: center;">
-            <div style="font-size: 2rem; margin-bottom: 0.5rem;">⏰</div>
-            <div style="font-weight: bold;">Hourly Activity Heatmap</div>
-            <div style="color: #7f8c8d; margin-top: 0.5rem;">Heatmap showing activity by hour and day</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Weekday vs Weekend
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("""
-        <div class="chart-placeholder">
-            <div style="text-align: center;">
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">📅</div>
-                <div style="font-weight: bold;">Weekday vs Weekend</div>
-                <div style="color: #7f8c8d; margin-top: 0.5rem;">Comparison of behavior patterns</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown("""
-        <div class="chart-placeholder">
-            <div style="text-align: center;">
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔄</div>
-                <div style="font-weight: bold;">Hourly Conversion Rates</div>
-                <div style="color: #7f8c8d; margin-top: 0.5rem;">Conversion rate by hour</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+    render_time_trends_tab(df)
 
-# Tab 4: Product Popularity
-with tabs[3]:
-    st.markdown('<div class="section-header">Product Popularity Analysis</div>', unsafe_allow_html=True)
-    
-    # Day selector
-    day_options = ["Nov 25", "Nov 26", "Nov 27", "Nov 28", "Nov 29", "Nov 30", "Dec 1", "Dec 2"]
-    selected_day = st.select_slider("Select Day", options=day_options, value="Nov 25")
-    
-    # Metric selector
-    metric = st.radio(
-        "Popularity Metric",
-        ["Views", "Cart Additions", "Favorites", "Purchases"],
-        horizontal=True
-    )
-    
-    # Top and bottom products
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("""
-        <div class="chart-placeholder">
-            <div style="text-align: center;">
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔝</div>
-                <div style="font-weight: bold;">Top 10 Products</div>
-                <div style="color: #7f8c8d; margin-top: 0.5rem;">Most popular products by selected metric</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown("""
-        <div class="chart-placeholder">
-            <div style="text-align: center;">
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">👎</div>
-                <div style="font-weight: bold;">Least Popular Products</div>
-                <div style="color: #7f8c8d; margin-top: 0.5rem;">Products with lowest engagement</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # Product trends over time
-    st.markdown('<div class="section-header">Product Popularity Trends</div>', unsafe_allow_html=True)
-    
-    st.markdown("""
-    <div class="chart-placeholder" style="height: 350px;">
-        <div style="text-align: center;">
-            <div style="font-size: 2rem; margin-bottom: 0.5rem;">📈</div>
-            <div style="font-weight: bold;">Product Popularity Over Time</div>
-            <div style="color: #7f8c8d; margin-top: 0.5rem;">Line chart showing trends for top products</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+# -----------------------------
+# Tab 4: Product Popularity - Interactive Controls Added
+# -----------------------------
+with tabs[3]:  # Make sure this matches the order of your tabs
+    render_product_popularity_tab(df)
 
-# Tab 5: Categories
+# -----------------------------
+# Tab 5: Categories - Dynamic Category Analysis
+# -----------------------------
 with tabs[4]:
-    st.markdown('<div class="section-header">Category Analysis</div>', unsafe_allow_html=True)
-    
-    # Top categories chart
-    st.markdown("""
-    <div class="chart-placeholder" style="height: 350px;">
-        <div style="text-align: center;">
-            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🗂️</div>
-            <div style="font-weight: bold;">Category Performance</div>
-            <div style="color: #7f8c8d; margin-top: 0.5rem;">Treemap showing category popularity and conversion</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Category metrics
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("""
-        <div class="chart-placeholder">
-            <div style="text-align: center;">
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">📊</div>
-                <div style="font-weight: bold;">Category Conversion Rates</div>
-                <div style="color: #7f8c8d; margin-top: 0.5rem;">Bar chart of conversion by category</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown("""
-        <div class="chart-placeholder">
-            <div style="text-align: center;">
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">⏱️</div>
-                <div style="font-weight: bold;">Category Activity by Hour</div>
-                <div style="color: #7f8c8d; margin-top: 0.5rem;">When different categories are popular</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # Category comparison
-    st.markdown('<div class="section-header">Category Comparison</div>', unsafe_allow_html=True)
-    
-    st.markdown("""
-    <div class="chart-placeholder" style="height: 350px;">
-        <div style="text-align: center;">
-            <div style="font-size: 2rem; margin-bottom: 0.5rem;">📊</div>
-            <div style="font-weight: bold;">Category Performance Radar</div>
-            <div style="color: #7f8c8d; margin-top: 0.5rem;">Radar chart comparing category metrics</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    render_category_analysis_tab(df)
 
-# Tab 6: User Behavior
+# -----------------------------
+# Tab 6: User Behavior - Dynamic Visualizations
+# -----------------------------
 with tabs[5]:
-    st.markdown('<div class="section-header">User Behavior Analysis</div>', unsafe_allow_html=True)
-    
-    # User flow diagram
-    st.markdown("""
-    <div class="chart-placeholder" style="height: 350px;">
-        <div style="text-align: center;">
-            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔄</div>
-            <div style="font-weight: bold;">User Behavior Flow</div>
-            <div style="color: #7f8c8d; margin-top: 0.5rem;">Sankey diagram showing user journey paths</div>
+    render_user_behavior_tab(df)
+
+
+
+
+
+# -----------------------------
+# Footer and Help Section
+# -----------------------------
+
+# Footer with project information
+st.markdown("""
+<div class="footer">
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 0;">
+        <div>
+            🛒 <span style="font-weight: 500;">E-Commerce Analytics Dashboard</span> 
+            | Final Project by Anuj Patel & Jaimin Surathiy
+        </div>
+        <div>
+            <span style="color: #6c757d; font-size: 0.9rem;">Data Visualization Course • Spring 2025</span>
         </div>
     </div>
-    """, unsafe_allow_html=True)
-    
-    # User segments
-    st.markdown('<div class="section-header">User Segments</div>', unsafe_allow_html=True)
-    
-    col1, col2 = st.columns(2)
+</div>
+""", unsafe_allow_html=True)
+
+# Comprehensive help section
+with st.expander("💡 How to use this dashboard"):
+    col1, col2 = st.columns([3, 2])
     
     with col1:
         st.markdown("""
-        <div class="chart-placeholder">
-            <div style="text-align: center;">
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">👥</div>
-                <div style="font-weight: bold;">User Segments by Behavior</div>
-                <div style="color: #7f8c8d; margin-top: 0.5rem;">Distribution of user types</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        ### Dashboard Guide
+        
+        This interactive dashboard provides comprehensive analysis of e-commerce user behavior data.
+        
+        #### Navigation Tips
+        
+        1. **Filter your data**: Use the sidebar controls to:
+           - Select specific date ranges
+           - Filter by user behavior types
+           - Focus on specific product categories
+        
+        2. **Explore different perspectives**: Navigate between tabs to analyze:
+           - Overview metrics and general trends
+           - Detailed funnel conversion analysis
+           - Time-based patterns in user behavior
+           - Product popularity rankings
+           - Category performance comparisons
+           - User behavior patterns and segments
+        
+        3. **Interact with visualizations**:
+           - Hover over charts for detailed tooltips
+           - Click on legend items to filter data
+           - Use the zoom and pan tools to explore dense charts
+           - Download charts as PNG files using the camera icon
+        
+        #### Data Information
+        
+        The dataset contains user interaction logs from covering November 25 to December 2, 2017, with four types of user behaviors:
+        - **Page View (pv)**: User viewed a product page
+        - **Add to Cart (cart)**: User added product to shopping cart
+        - **Favorite (fav)**: User saved product to favorites/wishlist
+        - **Purchase (buy)**: User completed purchase of product
+        """)
     
     with col2:
+        # Quick reference for tabs
         st.markdown("""
-        <div class="chart-placeholder">
-            <div style="text-align: center;">
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">⏱️</div>
-                <div style="font-weight: bold;">Session Duration vs Conversion</div>
-                <div style="color: #7f8c8d; margin-top: 0.5rem;">Relationship between time spent and purchases</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # User insights
-    st.markdown("""
-    <div class="insight-box">
-        <div style="font-weight: bold; margin-bottom: 0.5rem;">User Behavior Insights:</div>
-        <p>Users who interact with more than 5 products are 2.3x more likely to make a purchase. Mobile users have a 15% lower conversion rate than desktop users, but make up 68% of total traffic.</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-# Footer
-st.markdown('<div class="footer">🛒 Taobao E-Commerce Analytics Dashboard | Final Project by Your Name</div>', unsafe_allow_html=True)
-
-# Help expander
-with st.expander("💡 How to use this dashboard"):
-    st.markdown("""
-    ### Using This Dashboard
-    
-    1. **Filter the data** using the sidebar controls to select date ranges and categories
-    2. **Navigate between tabs** to explore different aspects of the funnel analysis
-    3. **Interact with visualizations** by hovering for details or clicking on elements
-    4. **Download insights** by clicking the export button on charts
-    
-    This dashboard analyzes the Taobao E-Commerce dataset containing user behavior data (page views, cart additions, favorites, and purchases) from November 25 to December 2, 2017.
-    """)
+        ### Tab Quick Reference
+        
+        **📊 Overview**
+        Key metrics, daily activity, funnel summary
+        
+        **🔄 Funnel Analysis**
+        Conversion rates, dropout points, category performance
+        
+        **⏱️ Time Trends**
+        Hourly and daily patterns, weekday vs weekend
+        
+        **📦 Product Popularity**
+        Top products, least popular items, popularity trends
+        
+        **🗂️ Categories**
+        Category performance, conversion rates by category
+        
+        **👥 User Behavior**
+        User journey flows, segments, purchase patterns
+        """)
+        
+        # Simple visual tip
+        st.image("https://via.placeholder.com/350x220", caption="Sample interaction: Try hovering and clicking on chart elements")

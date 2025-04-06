@@ -1,0 +1,12 @@
+1) Give Top 10 and Last 10 Categories name (Overview)
+3) Top 10 products and Last 10 products
+2) Product Popularity Analysis (make changes according to you)
+
+
+Anuj
+Improve Funnel by Category
+Hourly Activity Patterns
+Weekday vs Weekend Behavior (Add values on bar chart)
+Hourly Conversion Rate
+
+Category Analysis(make bar chart)

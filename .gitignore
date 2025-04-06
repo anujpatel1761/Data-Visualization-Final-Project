@@ -1,3 +1,4 @@
 /data/*.csv
 /data/*.parquet
 data/UserBehavior/*.csv
+data/UserBehavior/*.parquet
