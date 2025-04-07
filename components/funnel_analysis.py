@@ -80,6 +80,16 @@ def render_funnel_tab(df):
 
 
 def plot_category_conversion_heatmap(df, top_n=10):
+    """
+    Create an improved heatmap showing conversion rates by category
+    
+    Parameters:
+    df (pandas.DataFrame): The dataframe containing the user behavior data
+    top_n (int): Number of top categories to display
+    
+    Returns:
+    plotly.graph_objects.Figure: The heatmap figure
+    """
     # Count behavior per category
     behavior_pivot = df.pivot_table(
         index='CategoryID',
@@ -88,30 +98,84 @@ def plot_category_conversion_heatmap(df, top_n=10):
         aggfunc='count',
         fill_value=0
     ).reset_index()
-
+    
+    # Add total count column for sorting
+    behavior_pivot['total_count'] = behavior_pivot['pv'] + behavior_pivot['cart'] + \
+                                    behavior_pivot.get('fav', 0) + behavior_pivot['buy']
+    
     # Calculate conversion rates
-    behavior_pivot['view_to_cart'] = (behavior_pivot['cart'] / behavior_pivot['pv']) * 100
-    behavior_pivot['cart_to_buy'] = (behavior_pivot['buy'] / behavior_pivot['cart']) * 100
-
-    # Limit to top N categories by views
-    top_categories = behavior_pivot.sort_values(by='pv', ascending=False).head(top_n)
-
-    # Melt for heatmap format
+    behavior_pivot['view_to_cart'] = (behavior_pivot['cart'] / behavior_pivot['pv'] * 100).round(1)
+    behavior_pivot['cart_to_buy'] = (behavior_pivot['buy'] / behavior_pivot['cart'] * 100).round(1)
+    behavior_pivot['view_to_buy'] = (behavior_pivot['buy'] / behavior_pivot['pv'] * 100).round(1)
+    
+    # Handle NaN values for divisions by zero
+    behavior_pivot = behavior_pivot.fillna(0)
+    
+    # Limit to top N categories by total activity
+    top_categories = behavior_pivot.sort_values(by='total_count', ascending=False).head(top_n)
+    
+    # Create category labels with context
+    top_categories['category_label'] = top_categories['CategoryID'].astype(str) + " (" + \
+                                      (top_categories['pv'] / 1000).round().astype(int).astype(str) + "K views)"
+    
+    # Melt for heatmap format with meaningful conversion stages
     heatmap_df = top_categories.melt(
-        id_vars='CategoryID',
-        value_vars=['view_to_cart', 'cart_to_buy'],
+        id_vars='category_label',
+        value_vars=['view_to_cart', 'cart_to_buy', 'view_to_buy'],
         var_name='Conversion Stage',
-        value_name='Conversion Rate'
+        value_name='Conversion Rate %'
     )
-
-    # Plot heatmap
-    fig = px.density_heatmap(
-        heatmap_df,
-        x='Conversion Stage',
-        y='CategoryID',
-        z='Conversion Rate',
-        color_continuous_scale='Blues',
-        title="Conversion Rates by Category"
+    
+    # Make stage names more user-friendly
+    stage_mapping = {
+        'view_to_cart': 'View → Cart',
+        'cart_to_buy': 'Cart → Purchase',
+        'view_to_buy': 'View → Purchase'
+    }
+    heatmap_df['Conversion Stage'] = heatmap_df['Conversion Stage'].map(stage_mapping)
+    
+    # Sort by category label
+    heatmap_df = heatmap_df.sort_values(by='category_label')
+    
+    # Add text to display in cells
+    heatmap_df['text'] = heatmap_df['Conversion Rate %'].apply(lambda x: f"{x:.1f}%")
+    
+    # Create a more informative heatmap with text labels
+    import plotly.graph_objects as go
+    
+    fig = go.Figure(data=go.Heatmap(
+        z=heatmap_df['Conversion Rate %'],
+        x=heatmap_df['Conversion Stage'],
+        y=heatmap_df['category_label'],
+        colorscale='Blues',
+        text=heatmap_df['text'],
+        texttemplate="%{text}",
+        textfont={"size":12},
+        hoverinfo='text',
+        hovertext=heatmap_df.apply(
+            lambda row: f"Category: {row['category_label']}<br>" +
+                       f"Stage: {row['Conversion Stage']}<br>" +
+                       f"Conversion Rate: {row['Conversion Rate %']:.1f}%",
+            axis=1
+        )
+    ))
+    
+    # Improve the layout
+    fig.update_layout(
+        title={
+            'text': 'Conversion Rates by Category',
+            'x': 0.5,
+            'xanchor': 'center'
+        },
+        xaxis_title='Conversion Stage',
+        yaxis_title='Category ID',
+        yaxis={'categoryorder': 'total ascending'},
+        height=500,
+        margin=dict(l=10, r=10, t=50, b=50),
+        coloraxis_colorbar=dict(
+            title="Conversion %",
+            ticksuffix="%"
+        )
     )
-    fig.update_layout(height=400, xaxis_title='', yaxis_title='Category ID')
+    
     return fig

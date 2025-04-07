@@ -10,3 +10,4 @@ Weekday vs Weekend Behavior (Add values on bar chart)
 Hourly Conversion Rate
 
 Category Analysis(make bar chart)
+User Behavior Analysis

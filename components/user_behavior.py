@@ -7,7 +7,7 @@ from datetime import datetime
 
 def render_user_behavior_tab(df):
     """
-    Renders the User Behavior tab with visualizations for user journeys,
+    Renders the User Behavior tab with improved visualizations for user journeys,
     user segments, and session analysis.
     
     Parameters:
@@ -27,6 +27,19 @@ def render_user_behavior_tab(df):
     user_journeys = create_user_journey_sankey(df_work)
     if user_journeys:
         st.plotly_chart(user_journeys, use_container_width=True)
+        
+        # Add explanatory text for the Sankey diagram
+        st.markdown("""
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+            <p><strong>How to Read This Chart:</strong> This Sankey diagram shows how users move through the purchase funnel. 
+            The width of each flow represents the number of users taking that path. Thicker lines indicate more common user journeys.</p>
+            <ul>
+                <li><strong>Page View → Add to Cart:</strong> Users who viewed a product and then added it to their cart</li>
+                <li><strong>Add to Cart → Purchase:</strong> Users who proceeded from cart to completing a purchase</li>
+                <li><strong>Page View → Favorite:</strong> Users who viewed a product and saved it to favorites</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
     else:
         st.markdown("""
         <div class="chart-placeholder" style="height: 350px;">
@@ -48,6 +61,19 @@ def render_user_behavior_tab(df):
         user_segments = create_user_segments_chart(df_work)
         if user_segments:
             st.plotly_chart(user_segments, use_container_width=True)
+            
+            # Add explanatory text for the pie chart
+            st.markdown("""
+            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                <p><strong>User Segment Definitions:</strong></p>
+                <ul>
+                    <li><strong>Browsers:</strong> Users who only viewed products without adding to cart, favoriting, or purchasing</li>
+                    <li><strong>Cart Abandoners:</strong> Users who added items to cart but did not complete a purchase</li>
+                    <li><strong>Wishlisters:</strong> Users who favorited items but did not purchase</li>
+                    <li><strong>Purchasers:</strong> Users who completed at least one purchase</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
         else:
             st.markdown("""
             <div class="chart-placeholder">
@@ -64,6 +90,15 @@ def render_user_behavior_tab(df):
         session_analysis = create_session_analysis_chart(df_work)
         if session_analysis:
             st.plotly_chart(session_analysis, use_container_width=True)
+            
+            # Add explanatory text for the bar chart
+            st.markdown("""
+            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                <p><strong>Purchase Probability:</strong> This chart shows how the likelihood of purchase changes based on how many products a user views. 
+                The percentages represent conversion rates, while the text above each bar shows the number of users in each category.</p>
+                <p><em>Key Insight: Users who view multiple products are generally more likely to make a purchase, suggesting that encouraging product exploration may increase conversion rates.</em></p>
+            </div>
+            """, unsafe_allow_html=True)
         else:
             st.markdown("""
             <div class="chart-placeholder">
@@ -77,17 +112,26 @@ def render_user_behavior_tab(df):
     
     # Generate dynamic insights based on data analysis
     insights = generate_behavior_insights(df_work)
-    st.markdown(f"""
-    <div class="insight-box">
-        <div style="font-weight: bold; margin-bottom: 0.5rem;">User Behavior Insights:</div>
-        <p>{insights}</p>
+    
+    # Add action items for marketing and product teams
+    st.markdown("""
+    <div style="background-color: #eaf4fb; padding: 20px; border-radius: 5px; margin-top: 20px; border-left: 5px solid #3498db;">
+        <h4 style="margin-top: 0; color: #2c3e50;">💡 Key Insights & Recommendations</h4>
+        <p>{}</p>
+        <h5 style="margin-top: 15px; color: #2c3e50;">Recommended Actions:</h5>
+        <ul>
+            <li><strong>For Cart Abandoners:</strong> Implement abandoned cart email reminders with incentives (e.g., free shipping, limited-time discounts)</li>
+            <li><strong>For Browsers:</strong> Add product recommendation carousels to encourage more exploration</li>
+            <li><strong>For Wishlisters:</strong> Send notifications for price drops on favorited items</li>
+            <li><strong>For Purchasers:</strong> Create personalized follow-up campaigns based on purchase history</li>
+        </ul>
     </div>
-    """, unsafe_allow_html=True)
+    """.format(insights), unsafe_allow_html=True)
 
 
 def create_user_journey_sankey(df):
     """
-    Creates a Sankey diagram showing user journey paths through the sales funnel.
+    Creates an improved Sankey diagram showing user journey paths through the sales funnel.
     
     Parameters:
     df (pandas.DataFrame): The dataframe with user behavior data
@@ -129,7 +173,12 @@ def create_user_journey_sankey(df):
     
     # Create lists for Sankey diagram
     behavior_types = ["pv", "cart", "fav", "buy"]
-    behavior_labels = {"pv": "Page View", "cart": "Add to Cart", "fav": "Favorite", "buy": "Purchase"}
+    behavior_labels = {
+        "pv": "Page View", 
+        "cart": "Add to Cart", 
+        "fav": "Favorite", 
+        "buy": "Purchase"
+    }
     
     # Create node indices mapping
     node_indices = {behavior: i for i, behavior in enumerate(behavior_types)}
@@ -151,26 +200,42 @@ def create_user_journey_sankey(df):
         
     node_labels = [behavior_labels.get(behavior, behavior) for behavior in behavior_types]
     
+    # Define node colors with better visibility
+    node_colors = [
+        "#36A2EB",  # Blue for Page View
+        "#FFCE56",  # Yellow for Add to Cart
+        "#4BC0C0",  # Teal for Favorite
+        "#FF6384"   # Pink for Purchase
+    ]
+    
     fig = go.Figure(data=[go.Sankey(
         node=dict(
             pad=15,
             thickness=20,
             line=dict(color="black", width=0.5),
             label=node_labels,
-            color=["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"]
+            color=node_colors
         ),
         link=dict(
             source=sources,
             target=targets,
             value=values,
-            color="rgba(200, 200, 200, 0.4)"
+            # Use semi-transparent colors based on target node
+            color=[f"rgba({','.join(str(int(c * 255)) for c in px.colors.hex_to_rgb(node_colors[t]))}, 0.4)" for s, t in zip(sources, targets)]
         )
     )])
     
     fig.update_layout(
-        title="User Journey Flow",
-        height=350,
-        font=dict(size=12)
+        title={
+            'text': "User Journey Flow: How Users Navigate Through the Site",
+            'y': 0.95,
+            'x': 0.5,
+            'xanchor': 'center',
+            'yanchor': 'top'
+        },
+        height=400,
+        font=dict(size=12),
+        margin=dict(l=0, r=0, t=40, b=0)
     )
     
     return fig
@@ -178,7 +243,7 @@ def create_user_journey_sankey(df):
 
 def create_user_segments_chart(df):
     """
-    Creates a chart showing user segments based on their behavior patterns.
+    Creates an improved chart showing user segments based on their behavior patterns.
     
     Parameters:
     df (pandas.DataFrame): The dataframe with user behavior data
@@ -216,33 +281,69 @@ def create_user_segments_chart(df):
     # Add percentage
     total_users = segment_df["Users"].sum()
     segment_df["Percentage"] = segment_df["Users"] / total_users * 100
+    
+    # Improve segment labels with counts and percentages
     segment_df["SegmentLabel"] = segment_df.apply(
-        lambda row: f"{row['Segment']}: {row['Percentage']:.1f}%", axis=1
+        lambda row: f"{row['Segment']}<br>{row['Users']:,} users<br>({row['Percentage']:.1f}%)", 
+        axis=1
     )
     
+    # Choose more intuitive colors
+    color_map = {
+        "Browsers": "#36A2EB",       # Blue
+        "Cart Abandoners": "#FFCE56", # Yellow
+        "Wishlisters": "#4BC0C0",     # Teal
+        "Purchasers": "#FF6384"       # Pink
+    }
+    
+    # Create a donut chart instead of a pie chart
     fig = px.pie(
         segment_df,
-        names="SegmentLabel",
+        names="Segment",
         values="Users",
-        title="User Segments by Behavior",
+        title="User Segments by Behavior Type",
         color="Segment",
-        color_discrete_map={
-            "Browsers": "#1f77b4",
-            "Cart Abandoners": "#ff7f0e",
-            "Wishlisters": "#2ca02c",
-            "Purchasers": "#d62728"
-        }
+        color_discrete_map=color_map,
+        hover_data=["Users", "Percentage"],
+        hole=0.4,  # Create a donut chart
+        custom_data=["SegmentLabel"]
     )
     
-    fig.update_layout(height=300)
-    fig.update_traces(textposition='inside', textinfo='percent')
+    # Improve text positioning and information
+    fig.update_traces(
+        textposition='inside',
+        textinfo='percent',
+        hovertemplate='<b>%{label}</b><br>Users: %{value:,}<br>Percentage: %{percent}<extra></extra>',
+        textfont_size=12,
+        insidetextorientation='horizontal'
+    )
+    
+    # Add a descriptive annotation in the center
+    fig.add_annotation(
+        x=0.5, y=0.5,
+        text=f"Total<br>{total_users:,}<br>Users",
+        showarrow=False,
+        font=dict(size=12)
+    )
+    
+    fig.update_layout(
+        height=350,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=-0.1,
+            xanchor="center",
+            x=0.5
+        ),
+        margin=dict(l=20, r=20, t=50, b=20)
+    )
     
     return fig
 
 
 def create_session_analysis_chart(df):
     """
-    Creates a chart showing the relationship between products viewed and purchase probability.
+    Creates an improved chart showing the relationship between products viewed and purchase probability.
     
     Parameters:
     df (pandas.DataFrame): The dataframe with user behavior data
@@ -264,54 +365,72 @@ def create_session_analysis_chart(df):
     if len(user_product_views) < 5:
         return None
     
-    # Create product view bins more safely
-    user_product_views["ViewCategory"] = "1 product"  # Default category
-    
-    # Assign categories based on products viewed
-    user_product_views.loc[user_product_views["ProductsViewed"] == 2, "ViewCategory"] = "2 products"
-    user_product_views.loc[(user_product_views["ProductsViewed"] >= 3) & 
-                          (user_product_views["ProductsViewed"] <= 5), "ViewCategory"] = "3-5 products"
-    user_product_views.loc[(user_product_views["ProductsViewed"] >= 6) & 
-                          (user_product_views["ProductsViewed"] <= 10), "ViewCategory"] = "6-10 products"
-    user_product_views.loc[user_product_views["ProductsViewed"] > 10, "ViewCategory"] = "11+ products"
+    # Create product view bins
+    user_product_views["ViewCategory"] = pd.cut(
+        user_product_views["ProductsViewed"],
+        bins=[0, 1, 2, 5, 10, float('inf')],
+        labels=["1 product", "2 products", "3-5 products", "6-10 products", "11+ products"],
+        right=True
+    )
     
     # Define the order of categories for plotting
     category_order = ["1 product", "2 products", "3-5 products", "6-10 products", "11+ products"]
     
     # Calculate purchase rate by view category
-    purchase_rate = user_product_views.groupby("ViewCategory")["Purchased"].mean().reset_index()
-    purchase_rate["PurchaseRate"] = purchase_rate["Purchased"] * 100
+    purchase_rate = user_product_views.groupby("ViewCategory")["Purchased"].agg(
+        ["mean", "count"]
+    ).reset_index()
+    purchase_rate["PurchaseRate"] = purchase_rate["mean"] * 100
+    purchase_rate["UserCount"] = purchase_rate["count"]
     
-    # Count users in each category
-    category_counts = user_product_views["ViewCategory"].value_counts().reset_index()
-    category_counts.columns = ["ViewCategory", "UserCount"]
-    
-    # Merge rates and counts
-    view_analysis = pd.merge(purchase_rate, category_counts, on="ViewCategory")
-    
-    # Ensure we have all categories in the right order
-    view_analysis = view_analysis[view_analysis["ViewCategory"].isin(category_order)]
-    
-    # Sort by the predefined order
-    view_analysis["OrderIndex"] = view_analysis["ViewCategory"].apply(lambda x: category_order.index(x) if x in category_order else 999)
-    view_analysis = view_analysis.sort_values("OrderIndex")
-    
-    # Create the chart
+    # Create a more descriptive chart with gradient color based on purchase rate
     fig = px.bar(
-        view_analysis,
+        purchase_rate,
         x="ViewCategory",
         y="PurchaseRate",
-        title="Products Viewed vs Purchase Rate",
+        color="PurchaseRate",
+        text="UserCount",
         labels={
             "ViewCategory": "Number of Products Viewed",
-            "PurchaseRate": "Purchase Rate (%)"
+            "PurchaseRate": "Purchase Rate (%)",
+            "UserCount": "Number of Users"
         },
-        text=view_analysis["UserCount"].apply(lambda x: f"{x} users"),
-        category_orders={"ViewCategory": category_order}
+        title="Purchase Probability by Product Exploration",
+        category_orders={"ViewCategory": category_order},
+        color_continuous_scale="Viridis"  # Green-to-purple gradient
     )
     
-    fig.update_layout(height=300)
-    fig.update_traces(textposition='outside')
+    # Add value labels directly on the bars
+    fig.update_traces(
+        texttemplate='%{y:.1f}%<br>(%{text:,} users)',
+        textposition='outside',
+        hovertemplate='<b>%{x}</b><br>Purchase Rate: %{y:.1f}%<br>Users: %{text:,}<extra></extra>'
+    )
+    
+    # Add a trend line to emphasize the pattern
+    x_values = list(range(len(purchase_rate)))
+    y_values = purchase_rate["PurchaseRate"].tolist()
+    
+    fig.add_trace(go.Scatter(
+        x=purchase_rate["ViewCategory"],
+        y=purchase_rate["PurchaseRate"],
+        mode='lines',
+        line=dict(color='rgba(255, 0, 0, 0.7)', width=2, dash='dot'),
+        name='Trend',
+        hoverinfo='skip'
+    ))
+    
+    fig.update_layout(
+        height=350,
+        xaxis=dict(title="Number of Products Viewed"),
+        yaxis=dict(
+            title="Purchase Rate (%)",
+            range=[0, max(purchase_rate["PurchaseRate"]) * 1.2]  # Add 20% padding
+        ),
+        coloraxis_showscale=False,  # Hide the color scale
+        showlegend=False,
+        margin=dict(l=20, r=20, t=50, b=20)
+    )
     
     return fig
 
@@ -360,20 +479,28 @@ def generate_behavior_insights(df):
         heavy_purchase_rate / light_purchase_rate if light_purchase_rate > 0 and not np.isnan(light_purchase_rate) else 0
     )
     
-    # Generate the insights text
+    # Generate more structured and actionable insights
     insights = []
     
     # Only add insights with meaningful data
     if purchase_likelihood_mult > 1.2 and not np.isnan(purchase_likelihood_mult):
-        insights.append(f"Users who browse more than 5 products are {purchase_likelihood_mult:.1f}x more likely to purchase.")
+        insights.append(f"Users who browse more than 5 products are <b>{purchase_likelihood_mult:.1f}x more likely to purchase</b>, suggesting that increasing product discovery could boost sales.")
+    
+    if view_to_cart > 0:
+        insights.append(f"The view-to-cart conversion rate is <b>{view_to_cart:.1f}%</b>, with <b>{user_behaviors['cart']:,}</b> users adding items to cart from <b>{user_behaviors['pv']:,}</b> who viewed products.")
     
     if cart_to_buy > 0:
-        insights.append(f"Our cart-to-purchase conversion rate is {cart_to_buy:.1f}%.")
+        insights.append(f"The cart-to-purchase conversion rate is <b>{cart_to_buy:.1f}%</b>, with <b>{user_behaviors['buy']:,}</b> users completing purchases from <b>{user_behaviors['cart']:,}</b> with items in cart.")
     
     if user_behaviors["fav"] > 0 and user_behaviors["buy"] > 0:
         fav_to_buy = (user_behaviors["buy"] / user_behaviors["fav"] * 100)
         if fav_to_buy > 0:
-            insights.append(f"Users who favorite items have a {fav_to_buy:.1f}% chance of making a purchase.")
+            insights.append(f"<b>{fav_to_buy:.1f}%</b> of users who favorite items eventually make a purchase, highlighting the importance of the wishlist feature in the purchasing journey.")
+    
+    # Calculate cart abandonment rate
+    if user_behaviors["cart"] > 0:
+        cart_abandonment = (1 - (user_behaviors["buy"] / user_behaviors["cart"])) * 100
+        insights.append(f"The cart abandonment rate is <b>{cart_abandonment:.1f}%</b>, representing a significant opportunity for recovery campaigns.")
     
     # Default insight if none of the above apply
     if not insights:
