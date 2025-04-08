@@ -294,8 +294,7 @@ st.markdown("""
     <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 0;">
         <div>
             🛒 <span style="font-weight: 500;">E-Commerce Analytics Dashboard</span> 
-            | Final Project by Anuj Patel & Jaimin Surathiy
-        </div>
+            | Final Project by Anuj Patel
         <div>
             <span style="color: #6c757d; font-size: 0.9rem;">Data Visualization Course • Spring 2025</span>
         </div>
