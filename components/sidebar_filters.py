@@ -142,7 +142,7 @@ def render_sidebar(df, data_path, load_data_func):
 
         st.markdown("---")
         st.markdown("### 📊 Data Source")
-        st.markdown("Taobao E-Commerce Dataset")
+        st.markdown("Dataset Information")
         st.markdown(f"• {dataset_stats['users']:,} unique users")
         st.markdown(f"• {dataset_stats['products']:,} unique products")
         st.markdown(f"• {dataset_stats['categories']:,} unique categories")
