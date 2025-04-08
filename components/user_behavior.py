@@ -13,7 +13,7 @@ def render_user_behavior_tab(df):
     Parameters:
     df (pandas.DataFrame): The dataframe with e-commerce data
     """
-    st.markdown('<div class="section-header">User Behavior Analysis</div>', unsafe_allow_html=True)
+    #st.markdown('<div class="section-header">User Behavior Analysis</div>', unsafe_allow_html=True)
     
     # Create a working copy of the dataframe
     df_work = df.copy()
@@ -24,11 +24,14 @@ def render_user_behavior_tab(df):
         df_work["Timestamp"] = pd.to_datetime(df_work["Timestamp"], errors='coerce')
     
     # Create Sankey diagram data for user journeys
+    # Create Sankey diagram data for user journeys
     user_journeys = create_user_journey_sankey(df_work)
+
     if user_journeys:
+        #st.markdown('<div class="section-header">User Behavior Analysis</div>', unsafe_allow_html=True)
         st.plotly_chart(user_journeys, use_container_width=True)
-        
-        # Add explanatory text for the Sankey diagram
+
+        # Explanatory text
         st.markdown("""
         <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
             <p><strong>How to Read This Chart:</strong> This Sankey diagram shows how users move through the purchase funnel. 
@@ -40,17 +43,10 @@ def render_user_behavior_tab(df):
             </ul>
         </div>
         """, unsafe_allow_html=True)
-    else:
-        st.markdown("""
-        <div class="chart-placeholder" style="height: 350px;">
-            <div style="text-align: center;">
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔄</div>
-                <div style="font-weight: bold;">User Behavior Flow</div>
-                <div style="color: #7f8c8d; margin-top: 0.5rem;">Not enough journey data available</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    
+    # Else, do nothing (don't render the header or chart placeholder)
+
+
+
     # User segments section
     st.markdown('<div class="section-header">User Segments</div>', unsafe_allow_html=True)
     
@@ -113,20 +109,20 @@ def render_user_behavior_tab(df):
     # Generate dynamic insights based on data analysis
     insights = generate_behavior_insights(df_work)
     
-    # Add action items for marketing and product teams
-    st.markdown("""
-    <div style="background-color: #eaf4fb; padding: 20px; border-radius: 5px; margin-top: 20px; border-left: 5px solid #3498db;">
-        <h4 style="margin-top: 0; color: #2c3e50;">💡 Key Insights & Recommendations</h4>
-        <p>{}</p>
-        <h5 style="margin-top: 15px; color: #2c3e50;">Recommended Actions:</h5>
-        <ul>
-            <li><strong>For Cart Abandoners:</strong> Implement abandoned cart email reminders with incentives (e.g., free shipping, limited-time discounts)</li>
-            <li><strong>For Browsers:</strong> Add product recommendation carousels to encourage more exploration</li>
-            <li><strong>For Wishlisters:</strong> Send notifications for price drops on favorited items</li>
-            <li><strong>For Purchasers:</strong> Create personalized follow-up campaigns based on purchase history</li>
-        </ul>
-    </div>
-    """.format(insights), unsafe_allow_html=True)
+    # # Add action items for marketing and product teams
+    # st.markdown("""
+    # <div style="background-color: #eaf4fb; padding: 20px; border-radius: 5px; margin-top: 20px; border-left: 5px solid #3498db;">
+    #     <h4 style="margin-top: 0; color: #2c3e50;">💡 Key Insights & Recommendations</h4>
+    #     <p>{}</p>
+    #     <h5 style="margin-top: 15px; color: #2c3e50;">Recommended Actions:</h5>
+    #     <ul>
+    #         <li><strong>For Cart Abandoners:</strong> Implement abandoned cart email reminders with incentives (e.g., free shipping, limited-time discounts)</li>
+    #         <li><strong>For Browsers:</strong> Add product recommendation carousels to encourage more exploration</li>
+    #         <li><strong>For Wishlisters:</strong> Send notifications for price drops on favorited items</li>
+    #         <li><strong>For Purchasers:</strong> Create personalized follow-up campaigns based on purchase history</li>
+    #     </ul>
+    # </div>
+    # """.format(insights), unsafe_allow_html=True)
 
 
 def create_user_journey_sankey(df):
@@ -225,20 +221,20 @@ def create_user_journey_sankey(df):
         )
     )])
     
-    fig.update_layout(
-        title={
-            'text': "User Journey Flow: How Users Navigate Through the Site",
-            'y': 0.95,
-            'x': 0.5,
-            'xanchor': 'center',
-            'yanchor': 'top'
-        },
-        height=400,
-        font=dict(size=12),
-        margin=dict(l=0, r=0, t=40, b=0)
-    )
+    # fig.update_layout(
+    #     title={
+    #         'text': "User Journey Flow: How Users Navigate Through the Site",
+    #         'y': 0.95,
+    #         'x': 0.5,
+    #         'xanchor': 'center',
+    #         'yanchor': 'top'
+    #     },
+    #     height=400,
+    #     font=dict(size=12),
+    #     margin=dict(l=0, r=0, t=40, b=0)
+    # )
     
-    return fig
+    # return fig
 
 
 def create_user_segments_chart(df):

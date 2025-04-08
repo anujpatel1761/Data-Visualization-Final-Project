@@ -110,7 +110,11 @@ def render_funnel_tab(df):
 
 
 def plot_category_conversion_heatmap(df, top_n=10):
-    # Behavior per Category
+    if df.empty or "BehaviorType" not in df.columns:
+        st.warning("No data available to generate category conversion heatmap.")
+        return go.Figure()
+
+    # Pivot safely
     behavior_pivot = df.pivot_table(
         index='CategoryID',
         columns='BehaviorType',
@@ -119,24 +123,40 @@ def plot_category_conversion_heatmap(df, top_n=10):
         fill_value=0
     ).reset_index()
 
-    behavior_pivot['total_count'] = behavior_pivot['pv'] + behavior_pivot['cart'] + \
-                                    behavior_pivot.get('fav', 0) + behavior_pivot['buy']
+    # Ensure all expected behaviors exist
+    expected_behaviors = ['pv', 'cart', 'fav', 'buy']
+    behavior_pivot = behavior_pivot.reindex(columns=['CategoryID'] + expected_behaviors, fill_value=0)
 
-    # Conversion Rate Calculations
-    behavior_pivot['view_to_cart'] = (behavior_pivot['cart'] / behavior_pivot['pv'] * 100).round(1)
-    behavior_pivot['cart_to_buy'] = (behavior_pivot['buy'] / behavior_pivot['cart'] * 100).round(1)
-    behavior_pivot['view_to_buy'] = (behavior_pivot['buy'] / behavior_pivot['pv'] * 100).round(1)
-    behavior_pivot = behavior_pivot.fillna(0)
+    # Total count
+    behavior_pivot['total_count'] = (
+        behavior_pivot['pv'] +
+        behavior_pivot['cart'] +
+        behavior_pivot['fav'] +
+        behavior_pivot['buy']
+    )
 
-    # Top N Categories
+    # Conversion Rate Calculations with safe division
+    behavior_pivot['view_to_cart'] = (
+        (behavior_pivot['cart'] / behavior_pivot['pv']) * 100
+    ).replace([float("inf"), -float("inf")], 0).fillna(0).round(1)
+
+    behavior_pivot['cart_to_buy'] = (
+        (behavior_pivot['buy'] / behavior_pivot['cart']) * 100
+    ).replace([float("inf"), -float("inf")], 0).fillna(0).round(1)
+
+    behavior_pivot['view_to_buy'] = (
+        (behavior_pivot['buy'] / behavior_pivot['pv']) * 100
+    ).replace([float("inf"), -float("inf")], 0).fillna(0).round(1)
+
+    # Top N Categories by total behavior volume
     top_categories = behavior_pivot.sort_values(by='total_count', ascending=False).head(top_n)
 
-    # Label: Use Category Name + View Count
+    # Labels: "Category Name (XK views)"
     top_categories['category_label'] = top_categories['CategoryID'].map(category_mapping).fillna(
         top_categories['CategoryID'].astype(str)
     ) + " (" + (top_categories['pv'] / 1000).round().astype(int).astype(str) + "K views)"
 
-    # Reshape for Heatmap
+    # Reshape for heatmap
     heatmap_df = top_categories.melt(
         id_vars='category_label',
         value_vars=['view_to_cart', 'cart_to_buy', 'view_to_buy'],
@@ -144,18 +164,16 @@ def plot_category_conversion_heatmap(df, top_n=10):
         value_name='Conversion Rate %'
     )
 
-    # Friendly Stage Names
+    # Friendly names
     stage_mapping = {
         'view_to_cart': 'View → Cart',
         'cart_to_buy': 'Cart → Purchase',
         'view_to_buy': 'View → Purchase'
     }
     heatmap_df['Conversion Stage'] = heatmap_df['Conversion Stage'].map(stage_mapping)
-
-    heatmap_df = heatmap_df.sort_values(by='category_label')
     heatmap_df['text'] = heatmap_df['Conversion Rate %'].apply(lambda x: f"{x:.1f}%")
 
-    # Heatmap Plot
+    # Plot
     fig = go.Figure(data=go.Heatmap(
         z=heatmap_df['Conversion Rate %'],
         x=heatmap_df['Conversion Stage'],
@@ -166,8 +184,8 @@ def plot_category_conversion_heatmap(df, top_n=10):
         textfont={"size": 12},
         hoverinfo='text',
         hovertext=heatmap_df.apply(
-            lambda row: f"Category: {row['category_label']}<br>" +
-                        f"Stage: {row['Conversion Stage']}<br>" +
+            lambda row: f"Category: {row['category_label']}<br>"
+                        f"Stage: {row['Conversion Stage']}<br>"
                         f"Conversion Rate: {row['Conversion Rate %']:.1f}%",
             axis=1
         )

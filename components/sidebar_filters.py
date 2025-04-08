@@ -28,7 +28,7 @@ category_mapping = {
 
 def render_sidebar(df, data_path, load_data_func):
     with st.sidebar:
-        st.title("🛒 Taobao Analytics")
+        st.title("🛒 SmartShopper Insights")
 
         if 'start_date' not in st.session_state:
             st.session_state.start_date = datetime.date(2017, 11, 25)
@@ -83,7 +83,7 @@ def render_sidebar(df, data_path, load_data_func):
         selected_behavior_displays = st.multiselect(
             "Select behaviors",
             behavior_display_options,
-            default=["pv (Page View)", "cart (Add to Cart)", "buy (Purchase)"]
+            default=[]  # No default selection
         )
         selected_behaviors = [behavior_map[display] for display in selected_behavior_displays]
 
@@ -102,10 +102,9 @@ def render_sidebar(df, data_path, load_data_func):
         selected_category_names = st.multiselect(
             "Select categories",
             top_category_names,
-            default=top_category_names[:2] if len(top_category_names) >= 2 else top_category_names
+            default=[]  # No default selection
         )
 
-        # Map category names back to CategoryIDs
         reverse_category_map = {v: k for k, v in category_mapping.items()}
         selected_category_ids = [
             reverse_category_map[name]
@@ -120,7 +119,6 @@ def render_sidebar(df, data_path, load_data_func):
         with col2:
             reset_filters_button = st.button("Reset", use_container_width=True, key="reset")
 
-        # Dataset stats
         @st.cache_data(show_spinner=False)
         def get_dataset_stats(parquet_file_path):
             df_stats = pd.read_parquet(parquet_file_path)
@@ -139,7 +137,6 @@ def render_sidebar(df, data_path, load_data_func):
 
         dataset_stats = get_dataset_stats(data_path)
 
-        # Safely format dates
         start_date_fmt = dataset_stats["start_date"].strftime('%b %d') if dataset_stats["start_date"] else "Unknown"
         end_date_fmt = dataset_stats["end_date"].strftime('%b %d, %Y') if dataset_stats["end_date"] else "Unknown"
 
@@ -161,7 +158,7 @@ def render_sidebar(df, data_path, load_data_func):
         end_datetime = pd.Timestamp(end_date)
 
         filtered_df = filtered_df[
-            (filtered_df["Timestamp"] >= start_datetime) &
+            (filtered_df["Timestamp"] >= start_datetime) & 
             (filtered_df["Timestamp"] <= end_datetime + pd.Timedelta(days=1))
         ]
 

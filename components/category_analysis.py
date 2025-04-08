@@ -28,7 +28,7 @@ category_mapping = {
 }
 
 def render_category_analysis_tab(df):
-    st.markdown('<div class="section-header">Category Analysis</div>', unsafe_allow_html=True)
+    #st.markdown('<div class="section-header">Category Analysis</div>', unsafe_allow_html=True)
 
     df_work = df.copy()
     df_work["CategoryName"] = df_work["CategoryID"].map(category_mapping).fillna("Other")
@@ -134,41 +134,41 @@ def render_category_analysis_tab(df):
         else:
             st.info("Not enough hourly data.")
 
-    st.markdown('<div class="section-header">Category Comparison</div>', unsafe_allow_html=True)
+    #st.markdown('<div class="section-header">Category Comparison</div>', unsafe_allow_html=True)
 
-    if not category_metrics_df.empty:
-        top_5 = category_metrics_df.head(5)
-        fig_radar = go.Figure()
-        labels = ["View → Cart", "View → Buy", "Cart → Buy", "Total Views"]
-        max_views = top_5["Total Views"].max()
-        norm_views = (top_5["Total Views"] / max_views) * 100
+    # if not category_metrics_df.empty:
+    #     top_5 = category_metrics_df.head(5)
+    #     fig_radar = go.Figure()
+    #     labels = ["View → Cart", "View → Buy", "Cart → Buy", "Total Views"]
+    #     max_views = top_5["Total Views"].max()
+    #     norm_views = (top_5["Total Views"] / max_views) * 100
 
-        for i, row in top_5.iterrows():
-            fig_radar.add_trace(go.Scatterpolar(
-                r=[
-                    row["View → Cart"],
-                    row["View → Buy"],
-                    row["Cart → Buy"],
-                    norm_views.iloc[i]
-                ],
-                theta=labels,
-                fill='toself',
-                name=row["Category"]
-            ))
+    #     for i, row in top_5.iterrows():
+    #         fig_radar.add_trace(go.Scatterpolar(
+    #             r=[
+    #                 row["View → Cart"],
+    #                 row["View → Buy"],
+    #                 row["Cart → Buy"],
+    #                 norm_views.iloc[i]
+    #             ],
+    #             theta=labels,
+    #             fill='toself',
+    #             name=row["Category"]
+    #         ))
 
-        fig_radar.update_layout(
-            polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
-            title="Category Performance Radar",
-            height=400
-        )
-        st.plotly_chart(fig_radar, use_container_width=True)
-    else:
-        st.info("Not enough data to display radar chart.")
+    #     fig_radar.update_layout(
+    #         polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
+    #         title="Category Performance Radar",
+    #         height=400
+    #     )
+    #     st.plotly_chart(fig_radar, use_container_width=True)
+    # else:
+    #     st.info("Not enough data to display radar chart.")
 
-    st.markdown("""
-    <div class="insight-box">
-        <div style="font-weight: bold; margin-bottom: 0.5rem;">Category Insights:</div>
-        <p>The analysis shows that different categories have distinct conversion patterns and time-based popularity. 
-        Understanding these patterns can help optimize product placement and marketing strategies for each category.</p>
-    </div>
-    """, unsafe_allow_html=True)
+    # st.markdown("""
+    # <div class="insight-box">
+    #     <div style="font-weight: bold; margin-bottom: 0.5rem;">Category Insights:</div>
+    #     <p>The analysis shows that different categories have distinct conversion patterns and time-based popularity. 
+    #     Understanding these patterns can help optimize product placement and marketing strategies for each category.</p>
+    # </div>
+    # """, unsafe_allow_html=True)
