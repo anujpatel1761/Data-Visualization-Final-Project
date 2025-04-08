@@ -5,7 +5,7 @@ import streamlit as st
 
 # === Category Mapping for Top 10 and Least 10 ===
 category_mapping = {
-    4756105: 'Beauty',
+    4756105: 'Electronics',
     4145813: 'Pet Supplies',
     2355072: 'Clothing',
     3607361: 'Musical Instruments',
