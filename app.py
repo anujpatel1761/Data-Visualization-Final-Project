@@ -44,7 +44,7 @@ def load_data(parquet_file_path):
 
     return df
 
-data_path = r"C:\Users\anujp\Desktop\Data-Visualization-Final-Project\data\UserBehavior\final_user_behavior.parquet"
+data_path = r"data/UserBehavior/final_user_behavior.parquet"
 df = load_data(data_path)
 
 
